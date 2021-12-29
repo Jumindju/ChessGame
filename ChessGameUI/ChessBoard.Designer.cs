@@ -37,13 +37,12 @@ namespace ChessGameUI
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.BackColor = System.Drawing.SystemColors.Control;
+            this.BackColor = System.Drawing.Color.FromArgb(((int) (((byte) (250)))), ((int) (((byte) (247)))), ((int) (((byte) (245)))));
             this.ClientSize = new System.Drawing.Size(640, 640);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.Name = "ChessBoard";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.TopMost = true;
-            this.BackColor = Color.FromArgb(250, 247, 245);
             this.ResumeLayout(false);
         }
 

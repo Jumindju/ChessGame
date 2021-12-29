@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using ChessGameUI.Forms;
 
 namespace ChessGameUI
 {
@@ -36,7 +37,7 @@ namespace ChessGameUI
                 var row = cell / BoardSize;
 
                 // panel represents a tile
-                var tilePanel = new Panel();
+                var tilePanel = new ChessTile();
 
                 // add to Form's Controls so that they show up
                 Controls.Add(tilePanel);
