@@ -7,7 +7,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using ChessGameLogix;
+using ChessGameLogix.Pieces;
 using ChessGameUI.Forms;
+using ChessGameUI.Helper;
 
 namespace ChessGameUI
 {
@@ -30,6 +33,11 @@ namespace ChessGameUI
         {
             _chessBoardPanels = new Panel[TileCount];
 
+            var chessPiecesSprite = Image.FromFile("./Resc/ChessPieceSprite.png");
+
+            var pawn = new Pawn(0, Player.Black);
+            var pawnImg = PieceHelper.GetPieceImage(chessPiecesSprite, pawn);
+
             // add all cells to the game board after another (8 >> 2 = 64)
             for (var cell = 0; cell < TileCount; cell++)
             {
@@ -50,6 +58,8 @@ namespace ChessGameUI
                     ? _whiteColor
                     : _blackColor;
             }
+            
+            _chessBoardPanels[0].BackgroundImage = pawnImg;
 
             RenderBoard();
         }
