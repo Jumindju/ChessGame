@@ -26,13 +26,6 @@ namespace ChessGameUI
 
         protected override void OnLoad(EventArgs e)
         {
-            var tileWidth = ClientSize.Width / BoardSize;
-            var tileHeight = ClientSize.Height / BoardSize;
-            var tileSize = Math.Min(tileWidth, tileHeight);
-
-            var paddingLeft = (ClientSize.Width - (tileSize * BoardSize)) / 2;
-            var paddingTop = (ClientSize.Height - (tileSize * BoardSize)) / 2;
-
             _chessBoardPanels = new Panel[TileCount];
 
             // add all cells to the game board after another (8 >> 2 = 64)
@@ -42,11 +35,7 @@ namespace ChessGameUI
                 var row = cell / BoardSize;
 
                 // panel represents a tile
-                var tilePanel = new Panel
-                {
-                    Size = new Size(tileSize, tileSize),
-                    Location = new Point(paddingLeft + (tileSize * column), paddingTop + (tileSize * row))
-                };
+                var tilePanel = new Panel();
 
                 // add to Form's Controls so that they show up
                 Controls.Add(tilePanel);
@@ -58,6 +47,37 @@ namespace ChessGameUI
                 tilePanel.BackColor = (row % 2 + column % 2) != 1
                     ? _whiteColor
                     : _blackColor;
+            }
+            
+            RenderBoard();
+        }
+
+        protected override void OnResize(EventArgs e)
+        {
+            RenderBoard();
+        }
+
+        private void RenderBoard()
+        {
+            if (_chessBoardPanels == null)
+                return;
+            
+            var tileWidth = ClientSize.Width / BoardSize;
+            var tileHeight = ClientSize.Height / BoardSize;
+            var tileSize = Math.Min(tileWidth, tileHeight);
+
+            var paddingLeft = (ClientSize.Width - (tileSize * BoardSize)) / 2;
+            var paddingTop = (ClientSize.Height - (tileSize * BoardSize)) / 2;
+
+            for (var cell = 0; cell < TileCount; cell++)
+            {
+                var column = cell % BoardSize;
+                var row = cell / BoardSize;
+                
+                var tilePanel = _chessBoardPanels[cell];
+
+                tilePanel.Size = new Size(tileSize, tileSize);
+                tilePanel.Location = new Point(paddingLeft + (tileSize * column), paddingTop + (tileSize * row));
             }
         }
     }
