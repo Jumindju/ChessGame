@@ -16,6 +16,7 @@ namespace ChessGameUI
         private const int TileCount = BoardSize * BoardSize;
         private static readonly Color _whiteColor = Color.White;
         private static readonly Color _blackColor = Color.FromArgb(255, 18, 122, 29);
+        private const int BoardPadding = 10;
 
         private Panel[] _chessBoardPanels;
 
@@ -48,7 +49,7 @@ namespace ChessGameUI
                     ? _whiteColor
                     : _blackColor;
             }
-            
+
             RenderBoard();
         }
 
@@ -61,9 +62,9 @@ namespace ChessGameUI
         {
             if (_chessBoardPanels == null)
                 return;
-            
+
             var tileWidth = ClientSize.Width / BoardSize;
-            var tileHeight = ClientSize.Height / BoardSize;
+            var tileHeight = (ClientSize.Height - 2 * BoardPadding) / BoardSize;
             var tileSize = Math.Min(tileWidth, tileHeight);
 
             var paddingLeft = (ClientSize.Width - (tileSize * BoardSize)) / 2;
@@ -73,11 +74,12 @@ namespace ChessGameUI
             {
                 var column = cell % BoardSize;
                 var row = cell / BoardSize;
-                
+
                 var tilePanel = _chessBoardPanels[cell];
 
                 tilePanel.Size = new Size(tileSize, tileSize);
-                tilePanel.Location = new Point(paddingLeft + (tileSize * column), paddingTop + (tileSize * row));
+                tilePanel.Location = new Point(paddingLeft + (tileSize * column),
+                    paddingTop + (tileSize * row));
             }
         }
     }
