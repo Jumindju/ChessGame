@@ -2,8 +2,7 @@
 {
     public enum Player
     {
-        None = 0,
-        White,
-        Black
+        White = 1,
+        Black = -1
     }
 }
