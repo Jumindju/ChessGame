@@ -28,8 +28,8 @@ namespace ChessGameUI
 
         private readonly Game _game;
 
-        private int? _currentTargetedPiecePosition;
-        private List<int>? _currentlyDisplayedMoves;
+        private int? _currentSelectedPiecePosition;
+        private List<int>? _currentlyHighlightedMoves;
 
         public ChessBoard()
         {
@@ -84,7 +84,8 @@ namespace ChessGameUI
                         Image = _pieceImageCache[piece],
                         SizeMode = PictureBoxSizeMode.StretchImage,
                         Cursor = Cursors.Hand,
-                        Tag = cell
+                        Tag = cell,
+                        Location = new Point(1, 1)
                     };
                     pieceImgBox.Click += OnPieceClick;
 
@@ -119,9 +120,16 @@ namespace ChessGameUI
                     paddingTop + (tileSize * (Game.BoardSize - 1 - row)));
 
                 // color the backgrounds
-                tilePanel.BackColor = (row % 2 + column % 2) != 1
-                    ? _whiteColor
-                    : _blackColor;
+                if (_currentlyHighlightedMoves is not null && _currentlyHighlightedMoves.Contains(cell))
+                {
+                    tilePanel.BackColor = _highlightColor;
+                    tilePanel.Cursor = Cursors.Hand;
+                }
+                else
+                {
+                    tilePanel.BackColor = GetTileBackColor(cell);
+                    tilePanel.Cursor = Cursors.Default;
+                }
 
                 tilePanel.Cursor = Cursors.Default;
 
@@ -131,35 +139,50 @@ namespace ChessGameUI
                 {
                     var pictureBox = _pieceImageBoxes[cell];
                     tilePanel.Controls.Add(pictureBox);
-                    
+
                     pictureBox.Size = new Size(tileSize - 2, tileSize - 2);
-                    pictureBox.Location = new Point(1, 1);
                 }
             }
         }
 
         private void OnTileClick(object? sender, EventArgs args)
         {
-            if (_currentlyDisplayedMoves is null || _currentTargetedPiecePosition is null)
+            if (_currentlyHighlightedMoves is null || _currentSelectedPiecePosition is null)
                 return;
 
-            var targetedPosition = (int) ((ChessTile) sender).Tag;
-            if (_currentlyDisplayedMoves.Contains(targetedPosition))
+            // undo highlighting
+            foreach (var currentlyHighlightedMove in _currentlyHighlightedMoves)
             {
-                var targetedPiecePosition = _currentTargetedPiecePosition.Value;
+                var highlightedTile = _tilePanels[currentlyHighlightedMove];
+                highlightedTile.BackColor = GetTileBackColor(currentlyHighlightedMove);
+                highlightedTile.Cursor = Cursors.Default;
+            }
+            
+            var targetedPosition = (int) ((ChessTile) sender).Tag;
+
+            // move to the desired position
+            if (_currentlyHighlightedMoves.Contains(targetedPosition))
+            {
+                var selectedPiecePosition = _currentSelectedPiecePosition.Value;
+
+                _game.DoMove(selectedPiecePosition, targetedPosition);
+
+                var oldTile = _tilePanels[selectedPiecePosition];
+                oldTile.Controls.Clear();
+
+                var pieceImageBox = _pieceImageBoxes[selectedPiecePosition];
+                var targetedTile = _tilePanels[targetedPosition];
+                targetedTile.Controls.Clear();
+                targetedTile.Controls.Add(pieceImageBox);
                 
-                _game.DoMove(targetedPiecePosition, targetedPosition);
-                var pieceImageBox = _pieceImageBoxes[targetedPiecePosition];
                 _pieceImageBoxes[targetedPosition] = pieceImageBox;
                 pieceImageBox.Tag = targetedPosition;
-                
-                _pieceImageBoxes[targetedPiecePosition] = null;
+
+                _pieceImageBoxes[selectedPiecePosition] = null;
             }
 
-            _currentlyDisplayedMoves = null;
-            _currentTargetedPiecePosition = null;
-
-            RenderBoard();
+            _currentlyHighlightedMoves = null;
+            _currentSelectedPiecePosition = null;
         }
 
         private void OnPieceClick(object? sender, EventArgs e)
@@ -171,21 +194,46 @@ namespace ChessGameUI
             if (piece.Player != _game.CurrentPlayer)
                 return;
 
-            _currentTargetedPiecePosition = piecePosition;
+            _currentSelectedPiecePosition = piecePosition;
 
             var pieceMoves = _game.GetMoves(piecePosition);
-            _currentlyDisplayedMoves = pieceMoves;
-            HighlightPossibleTiles();
+            var lastHighlighted = _currentlyHighlightedMoves != null
+                ? new List<int>(_currentlyHighlightedMoves)
+                : null;
+
+            _currentlyHighlightedMoves = pieceMoves;
+
+            HighlightPossibleTiles(lastHighlighted);
         }
 
-        private void HighlightPossibleTiles()
+        private void HighlightPossibleTiles(List<int>? lastHighlightedTiles)
         {
-            foreach (var possibleMove in _currentlyDisplayedMoves)
+            foreach (var possibleMove in _currentlyHighlightedMoves)
             {
                 var highlightedPanel = _tilePanels[possibleMove];
                 highlightedPanel.BackColor = _highlightColor;
                 highlightedPanel.Cursor = Cursors.Hand;
             }
+
+            if (lastHighlightedTiles is null)
+                return;
+
+            foreach (var lastHighlighted in lastHighlightedTiles)
+            {
+                var lastHighlightedTile = _tilePanels[lastHighlighted];
+                lastHighlightedTile.BackColor = GetTileBackColor(lastHighlighted);
+                lastHighlightedTile.Cursor = Cursors.Default;
+            }
+        }
+
+        private static Color GetTileBackColor(int position)
+        {
+            var column = position % Game.BoardSize;
+            var row = position / Game.BoardSize;
+
+            return row % 2 + column % 2 != 1
+                ? _whiteColor
+                : _blackColor;
         }
 
         private void LoadPieceImages()
