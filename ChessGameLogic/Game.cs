@@ -20,7 +20,7 @@ namespace ChessGameLogic
             SetupBoard();
         }
 
-        public void DoMove(int startPosition, int targetPosition)
+        public Move MovePiece(int startPosition, int targetPosition)
         {
             var targetPiece = Board[startPosition];
             if (targetPiece is null)
@@ -31,11 +31,31 @@ namespace ChessGameLogic
                 throw new InvalidOperationException("Move is not possible");
 
             Board[startPosition] = null;
+            var isCapture = Board[targetPosition] is not null;
             Board[targetPosition] = targetPiece;
 
-            CurrentPlayer = CurrentPlayer == Player.White
-                ? Player.Black
-                : Player.White;
+            var targetRow = targetPosition / BoardSize;
+            var isOnLastRow = (targetPiece.Player == Player.White && targetRow == BoardSize - 1) ||
+                              (targetPiece.Player == Player.Black && targetRow == 0);
+            if (targetPiece.PieceType == PieceType.Pawn && isOnLastRow)
+                return Move.Promotion;
+
+            SwitchPlayer();
+            return isCapture
+                ? Move.Capture
+                : Move.Regular;
+        }
+
+        public void Promote(int position, PieceType promotion)
+        {
+            var row = position / 8;
+            if ((CurrentPlayer == Player.White && row != BoardSize - 1) || (CurrentPlayer == Player.Black) && row != 0)
+                throw new InvalidOperationException("Piece is not on promotion field");
+            if (Board[position]?.PieceType != PieceType.Pawn)
+                throw new InvalidOperationException("Piece for promotion is not a pawn");
+
+            Board[position] = new Piece(promotion, CurrentPlayer);
+            SwitchPlayer();
         }
 
         public List<int> GetMoves(int piecePosition)
@@ -125,6 +145,13 @@ namespace ChessGameLogic
             }
 
             return moves;
+        }
+
+        private void SwitchPlayer()
+        {
+            CurrentPlayer = CurrentPlayer == Player.White
+                ? Player.Black
+                : Player.White;
         }
 
         private void SetupBoard()

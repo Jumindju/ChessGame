@@ -17,7 +17,7 @@ namespace ChessGameUI
             Application.SetHighDpiMode(HighDpiMode.SystemAware);
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new ChessBoard());
+            Application.Run(new ChessBoardForm());
         }
     }
 }

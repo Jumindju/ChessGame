@@ -23,4 +23,13 @@
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Update="Forms\ChessBoardForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Forms\PromotionDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+  </ItemGroup>
+
 </Project>

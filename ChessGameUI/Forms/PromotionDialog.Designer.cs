@@ -1,17 +1,16 @@
-﻿
-using System.Drawing;
+﻿using System.ComponentModel;
 
 namespace ChessGameUI
 {
-    partial class ChessBoard
+    partial class PromotionDialog
     {
         /// <summary>
-        ///  Required designer variable.
+        /// Required designer variable.
         /// </summary>
-        private System.ComponentModel.IContainer components = null;
+        private IContainer components = null;
 
         /// <summary>
-        ///  Clean up any resources being used.
+        /// Clean up any resources being used.
         /// </summary>
         /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
         protected override void Dispose(bool disposing)
@@ -20,6 +19,7 @@ namespace ChessGameUI
             {
                 components.Dispose();
             }
+
             base.Dispose(disposing);
         }
 
@@ -33,20 +33,20 @@ namespace ChessGameUI
         {
             this.SuspendLayout();
             // 
-            // ChessBoard
+            // PromotionDialog
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.BackColor = System.Drawing.Color.FromArgb(((int) (((byte) (250)))), ((int) (((byte) (247)))), ((int) (((byte) (245)))));
-            this.ClientSize = new System.Drawing.Size(640, 640);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
-            this.Name = "ChessBoard";
-            this.StartPosition = System.Windows.Forms.FormStartPosition.Manual;
-            this.TopMost = true;
+            this.ClientSize = new System.Drawing.Size(800, 450);
+            this.ControlBox = false;
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
+            this.Name = "PromotionDialog";
+            this.ShowIcon = false;
+            this.ShowInTaskbar = false;
+            this.Text = "PromotionDialog";
             this.ResumeLayout(false);
         }
 
         #endregion
     }
 }
-

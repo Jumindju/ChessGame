@@ -14,7 +14,7 @@ using ChessGameUI.Helper;
 
 namespace ChessGameUI
 {
-    public partial class ChessBoard : Form
+    public partial class ChessBoardForm : Form
     {
         private static readonly Color _whiteColor = Color.White;
         private static readonly Color _blackColor = Color.FromArgb(255, 18, 122, 29);
@@ -25,14 +25,17 @@ namespace ChessGameUI
 
         private Panel[] _tilePanels;
         private PictureBox?[] _pieceImageBoxes;
-        private readonly Dictionary<Piece, Image> _pieceImageCache = new();
+        private Dictionary<Piece, Image> _pieceImageCache;
 
         private readonly Game _game;
 
         private int? _currentSelectedPiecePosition;
         private List<int>? _currentlyHighlightedMoves;
 
-        public ChessBoard()
+        public int TileSize { get; private set; }
+        public int PaddingLeft { get; private set; }
+
+        public ChessBoardForm()
         {
             InitializeComponent();
             _game = new Game();
@@ -102,10 +105,10 @@ namespace ChessGameUI
 
             var tileWidth = ClientSize.Width / Game.BoardSize;
             var tileHeight = (ClientSize.Height - 2 * BoardPadding) / Game.BoardSize;
-            var tileSize = Math.Min(tileWidth, tileHeight);
+            TileSize = Math.Min(tileWidth, tileHeight);
 
-            var paddingLeft = (ClientSize.Width - (tileSize * Game.BoardSize)) / 2;
-            var paddingTop = (ClientSize.Height - (tileSize * Game.BoardSize)) / 2;
+            PaddingLeft = (ClientSize.Width - (TileSize * Game.BoardSize)) / 2;
+            var paddingTop = (ClientSize.Height - (TileSize * Game.BoardSize)) / 2;
 
             for (var cell = 0; cell < Game.TileCount; cell++)
             {
@@ -116,9 +119,9 @@ namespace ChessGameUI
                 var tilePanel = _tilePanels[cell];
                 tilePanel.Controls.Clear();
 
-                tilePanel.Size = new Size(tileSize, tileSize);
-                tilePanel.Location = new Point(paddingLeft + (tileSize * column),
-                    paddingTop + (tileSize * (Game.BoardSize - 1 - row)));
+                tilePanel.Size = new Size(TileSize, TileSize);
+                tilePanel.Location = new Point(PaddingLeft + (TileSize * column),
+                    paddingTop + (TileSize * (Game.BoardSize - 1 - row)));
 
                 // color the backgrounds
                 if (_currentlyHighlightedMoves is not null && _currentlyHighlightedMoves.Contains(cell))
@@ -141,7 +144,7 @@ namespace ChessGameUI
                     var pictureBox = _pieceImageBoxes[cell];
                     tilePanel.Controls.Add(pictureBox);
 
-                    pictureBox.Size = new Size(tileSize - 2, tileSize - 2);
+                    pictureBox.Size = new Size(TileSize - 2, TileSize - 2);
                 }
             }
         }
@@ -200,8 +203,7 @@ namespace ChessGameUI
 
             var selectedPiecePosition = _currentSelectedPiecePosition.Value;
 
-            _game.DoMove(selectedPiecePosition, targetedPosition);
-
+            var move = _game.MovePiece(selectedPiecePosition, targetedPosition);
             var oldTile = _tilePanels[selectedPiecePosition];
             oldTile.Controls.Clear();
 
@@ -217,6 +219,18 @@ namespace ChessGameUI
 
             _currentlyHighlightedMoves = null;
             _currentSelectedPiecePosition = null;
+
+            if (move == ChessGameLogic.Move.Promotion)
+            {
+                var promotionDialog = new PromotionDialog(_game.CurrentPlayer)
+                {
+                    TopMost = true
+                };
+                promotionDialog.ShowDialog(this);
+                var promotionPiece = promotionDialog.SelectedPiece;
+                _game.Promote(targetedPosition,promotionPiece);
+                pieceImageBox.Image = GetPieceImage(_game.Board[targetedPosition]);
+            }
         }
 
         private void HighlightPossibleTiles(List<int>? lastHighlightedTiles)
@@ -266,6 +280,7 @@ namespace ChessGameUI
 
         private void LoadPieceImages()
         {
+            _pieceImageCache = new Dictionary<Piece, Image>();
             var chessPiecesSprite = Image.FromFile("./Resc/ChessPieceSprite.png");
 
             foreach (PieceType pieceType in Enum.GetValues(typeof(PieceType)))
@@ -277,5 +292,8 @@ namespace ChessGameUI
                 _pieceImageCache[blackPiece] = PieceHelper.GetPieceImage(chessPiecesSprite, blackPiece);
             }
         }
+
+        public Image GetPieceImage(Piece piece)
+            => _pieceImageCache[piece];
     }
 }
