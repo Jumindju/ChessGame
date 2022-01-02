@@ -8,7 +8,7 @@ namespace ChessGameLogic
     {
         public const int BoardSize = 8;
         public const int TileCount = BoardSize * BoardSize;
-        
+
         public Piece?[] Board { get; }
         public Player CurrentPlayer { get; private set; }
 
@@ -16,7 +16,7 @@ namespace ChessGameLogic
         {
             Board = new Piece?[64];
             CurrentPlayer = Player.White;
-            
+
             SetupBoard();
         }
 
@@ -37,7 +37,7 @@ namespace ChessGameLogic
                 ? Player.Black
                 : Player.White;
         }
-        
+
         public List<int> GetMoves(int piecePosition)
         {
             var piece = Board[piecePosition];
@@ -88,11 +88,21 @@ namespace ChessGameLogic
         {
             var moves = new List<int>();
             var direction = (int) piece.Player;
-             
+
             // check if piece is in front
             var moveInFront = piecePosition + (BoardSize * direction);
-            if(Board[moveInFront] is null)
+            if (Board[moveInFront] is null)
                 moves.Add(moveInFront);
+
+            // 2 moves on start position
+            var isOnStartPosition = (piece.Player == Player.White && piecePosition / 8 == 1) ||
+                                    (piece.Player == Player.Black && piecePosition / 8 == 6);
+            if (isOnStartPosition)
+            {
+                var doubleMove = piecePosition + (BoardSize * 2 * direction);
+                if (Board[doubleMove] is null)
+                    moves.Add(doubleMove);
+            }
 
             return moves;
         }
