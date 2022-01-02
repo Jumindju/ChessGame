@@ -7,8 +7,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using ChessGameLogix;
-using ChessGameLogix.Pieces;
+using ChessGameLogic;
+using ChessGameLogic.Pieces;
 using ChessGameUI.Forms;
 using ChessGameUI.Helper;
 
@@ -23,20 +23,35 @@ namespace ChessGameUI
         private const int BoardPadding = 10;
 
         private Panel[] _chessBoardPanels;
+        private PictureBox?[] _pieceImageBoxes;
+        private readonly Dictionary<Piece, Image> _pieceImageCache = new();
+
+        private readonly Game _game;
 
         public ChessBoard()
         {
             InitializeComponent();
+            _game = new Game();
         }
 
         protected override void OnLoad(EventArgs e)
         {
+            LoadPieceImages();
+
+            SetupUIElements();
+
+            RenderBoard();
+        }
+
+        protected override void OnResize(EventArgs e)
+        {
+            RenderBoard();
+        }
+
+        private void SetupUIElements()
+        {
             _chessBoardPanels = new Panel[TileCount];
-
-            var chessPiecesSprite = Image.FromFile("./Resc/ChessPieceSprite.png");
-
-            var pawn = new Pawn(0, Player.Black);
-            var pawnImg = PieceHelper.GetPieceImage(chessPiecesSprite, pawn);
+            _pieceImageBoxes = new PictureBox[TileCount];
 
             // add all cells to the game board after another (8 >> 2 = 64)
             for (var cell = 0; cell < TileCount; cell++)
@@ -57,16 +72,23 @@ namespace ChessGameUI
                 tilePanel.BackColor = (row % 2 + column % 2) != 1
                     ? _whiteColor
                     : _blackColor;
+
+                // add empty image box
+                var piece = _game.Board[cell];
+                if (piece != null)
+                {
+                    var pieceImgBox = new PictureBox
+                    {
+                        Image = _pieceImageCache[piece],
+                        SizeMode = PictureBoxSizeMode.StretchImage,
+                        Cursor = Cursors.Hand
+                    };
+
+                    tilePanel.Controls.Add(pieceImgBox);
+
+                    _pieceImageBoxes[cell] = pieceImgBox;
+                }
             }
-            
-            _chessBoardPanels[0].BackgroundImage = pawnImg;
-
-            RenderBoard();
-        }
-
-        protected override void OnResize(EventArgs e)
-        {
-            RenderBoard();
         }
 
         private void RenderBoard()
@@ -86,11 +108,35 @@ namespace ChessGameUI
                 var column = cell % BoardSize;
                 var row = cell / BoardSize;
 
+                // position tiles
                 var tilePanel = _chessBoardPanels[cell];
 
                 tilePanel.Size = new Size(tileSize, tileSize);
                 tilePanel.Location = new Point(paddingLeft + (tileSize * column),
-                    paddingTop + (tileSize * row));
+                    paddingTop + (tileSize * (BoardSize - 1 - row)));
+
+                // position pieces
+                var piece = _game.Board[cell];
+                if (piece != null)
+                {
+                    var pictureBox = _pieceImageBoxes[cell];
+                    pictureBox.Size = new Size(tileSize - 2, tileSize - 2);
+                    pictureBox.Location = new Point(1, 1);
+                }
+            }
+        }
+
+        private void LoadPieceImages()
+        {
+            var chessPiecesSprite = Image.FromFile("./Resc/ChessPieceSprite.png");
+
+            foreach (PieceType pieceType in Enum.GetValues(typeof(PieceType)))
+            {
+                var whitePiece = new Piece(pieceType, Player.White);
+                var blackPiece = new Piece(pieceType, Player.Black);
+
+                _pieceImageCache[whitePiece] = PieceHelper.GetPieceImage(chessPiecesSprite, whitePiece);
+                _pieceImageCache[blackPiece] = PieceHelper.GetPieceImage(chessPiecesSprite, blackPiece);
             }
         }
     }

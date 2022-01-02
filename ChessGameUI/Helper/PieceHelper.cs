@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
-using ChessGameLogix;
-using ChessGameLogix.Pieces;
+using ChessGameLogic;
+using ChessGameLogic.Pieces;
 
 namespace ChessGameUI.Helper
 {
@@ -30,18 +30,19 @@ namespace ChessGameUI.Helper
 
         private static Rectangle GetSpritePosition(Piece piece)
         {
-            if (piece is null)
-                throw new ArgumentNullException(nameof(piece));
-            if (piece.Player == Player.None)
-                throw new ArgumentException("This piece belongs to no player");
-
-            var y = piece.Player == Player.White
+            var (pieceType, player) = piece;
+            var y = player == Player.White
                 ? 0
                 : SpriteHeight;
 
-            var x = piece switch
+            var x = pieceType switch
             {
-                Pawn => 5 * SpriteWidth,
+                PieceType.King => 0, 
+                PieceType.Queen => SpriteWidth,
+                PieceType.Bishop => 2 * SpriteWidth,
+                PieceType.Knight => 3 * SpriteWidth,
+                PieceType.Rock => 4 * SpriteWidth,
+                PieceType.Pawn => 5 * SpriteWidth,
                 _ => throw new ArgumentException("Unknown piece")
             };
 

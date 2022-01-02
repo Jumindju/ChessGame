@@ -1,4 +1,4 @@
-﻿namespace ChessGameLogix
+﻿namespace ChessGameLogic
 {
     public enum Player
     {
