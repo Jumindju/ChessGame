@@ -19,6 +19,7 @@ namespace ChessGameUI
         private static readonly Color _whiteColor = Color.White;
         private static readonly Color _blackColor = Color.FromArgb(255, 18, 122, 29);
         private static readonly Color _highlightColor = Color.FromArgb(71, 137, 255);
+        private static readonly Color _takeHighlightColor = Color.FromArgb(255, 83, 84);
 
         private const int BoardPadding = 10;
 
@@ -122,7 +123,7 @@ namespace ChessGameUI
                 // color the backgrounds
                 if (_currentlyHighlightedMoves is not null && _currentlyHighlightedMoves.Contains(cell))
                 {
-                    tilePanel.BackColor = _highlightColor;
+                    tilePanel.BackColor = GetHighlightColor(cell);
                     tilePanel.Cursor = Cursors.Hand;
                 }
                 else
@@ -150,39 +151,19 @@ namespace ChessGameUI
             if (_currentlyHighlightedMoves is null || _currentSelectedPiecePosition is null)
                 return;
 
-            // undo highlighting
-            foreach (var currentlyHighlightedMove in _currentlyHighlightedMoves)
-            {
-                var highlightedTile = _tilePanels[currentlyHighlightedMove];
-                highlightedTile.BackColor = GetTileBackColor(currentlyHighlightedMove);
-                highlightedTile.Cursor = Cursors.Default;
-            }
-            
             var targetedPosition = (int) ((ChessTile) sender).Tag;
 
             // move to the desired position
             if (_currentlyHighlightedMoves.Contains(targetedPosition))
             {
-                var selectedPiecePosition = _currentSelectedPiecePosition.Value;
-
-                _game.DoMove(selectedPiecePosition, targetedPosition);
-
-                var oldTile = _tilePanels[selectedPiecePosition];
-                oldTile.Controls.Clear();
-
-                var pieceImageBox = _pieceImageBoxes[selectedPiecePosition];
-                var targetedTile = _tilePanels[targetedPosition];
-                targetedTile.Controls.Clear();
-                targetedTile.Controls.Add(pieceImageBox);
-                
-                _pieceImageBoxes[targetedPosition] = pieceImageBox;
-                pieceImageBox.Tag = targetedPosition;
-
-                _pieceImageBoxes[selectedPiecePosition] = null;
+                MovePiece(targetedPosition);
             }
-
-            _currentlyHighlightedMoves = null;
-            _currentSelectedPiecePosition = null;
+            else
+            {
+                UndoHighlighting();
+                _currentlyHighlightedMoves = null;
+                _currentSelectedPiecePosition = null;
+            }
         }
 
         private void OnPieceClick(object? sender, EventArgs e)
@@ -191,8 +172,15 @@ namespace ChessGameUI
             var piece = _game.Board[piecePosition];
             if (piece is null)
                 return;
+
             if (piece.Player != _game.CurrentPlayer)
+            {
+                if (_currentlyHighlightedMoves is not null &&
+                    _currentlyHighlightedMoves.Contains(piecePosition))
+                    MovePiece(piecePosition);
+
                 return;
+            }
 
             _currentSelectedPiecePosition = piecePosition;
 
@@ -206,12 +194,37 @@ namespace ChessGameUI
             HighlightPossibleTiles(lastHighlighted);
         }
 
+        private void MovePiece(int targetedPosition)
+        {
+            UndoHighlighting();
+
+            var selectedPiecePosition = _currentSelectedPiecePosition.Value;
+
+            _game.DoMove(selectedPiecePosition, targetedPosition);
+
+            var oldTile = _tilePanels[selectedPiecePosition];
+            oldTile.Controls.Clear();
+
+            var pieceImageBox = _pieceImageBoxes[selectedPiecePosition];
+            var targetedTile = _tilePanels[targetedPosition];
+            targetedTile.Controls.Clear();
+            targetedTile.Controls.Add(pieceImageBox);
+
+            _pieceImageBoxes[targetedPosition] = pieceImageBox;
+            pieceImageBox.Tag = targetedPosition;
+
+            _pieceImageBoxes[selectedPiecePosition] = null;
+
+            _currentlyHighlightedMoves = null;
+            _currentSelectedPiecePosition = null;
+        }
+
         private void HighlightPossibleTiles(List<int>? lastHighlightedTiles)
         {
             foreach (var possibleMove in _currentlyHighlightedMoves)
             {
                 var highlightedPanel = _tilePanels[possibleMove];
-                highlightedPanel.BackColor = _highlightColor;
+                highlightedPanel.BackColor = GetHighlightColor(possibleMove);
                 highlightedPanel.Cursor = Cursors.Hand;
             }
 
@@ -225,6 +238,21 @@ namespace ChessGameUI
                 lastHighlightedTile.Cursor = Cursors.Default;
             }
         }
+
+        private void UndoHighlighting()
+        {
+            foreach (var currentlyHighlightedMove in _currentlyHighlightedMoves)
+            {
+                var highlightedTile = _tilePanels[currentlyHighlightedMove];
+                highlightedTile.BackColor = GetTileBackColor(currentlyHighlightedMove);
+                highlightedTile.Cursor = Cursors.Default;
+            }
+        }
+
+        private Color GetHighlightColor(int position) =>
+            _game.Board[position] is null
+                ? _highlightColor
+                : _takeHighlightColor;
 
         private static Color GetTileBackColor(int position)
         {

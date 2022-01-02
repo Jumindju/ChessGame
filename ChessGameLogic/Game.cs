@@ -87,7 +87,8 @@ namespace ChessGameLogic
         private List<int> GetPawnMoves(int piecePosition, Piece piece)
         {
             var moves = new List<int>();
-            var direction = (int) piece.Player;
+            var (_, player) = piece;
+            var direction = (int) player;
 
             // check if piece is in front
             var moveInFront = piecePosition + (BoardSize * direction);
@@ -95,13 +96,32 @@ namespace ChessGameLogic
                 moves.Add(moveInFront);
 
             // 2 moves on start position
-            var isOnStartPosition = (piece.Player == Player.White && piecePosition / 8 == 1) ||
-                                    (piece.Player == Player.Black && piecePosition / 8 == 6);
+            var column = piecePosition / BoardSize;
+            var isOnStartPosition = (player == Player.White && column == 1) ||
+                                    (player == Player.Black && column == BoardSize - 2);
             if (isOnStartPosition)
             {
                 var doubleMove = piecePosition + (BoardSize * 2 * direction);
                 if (Board[doubleMove] is null)
                     moves.Add(doubleMove);
+            }
+
+            var row = piecePosition % BoardSize;
+
+            // take left
+            if (row > 0)
+            {
+                var leftTakePosition = piecePosition + (BoardSize - 1) * direction;
+                if (Board[leftTakePosition] is not null)
+                    moves.Add(leftTakePosition);
+            }
+
+            // take right
+            if (row < 7)
+            {
+                var rightTakePosition = piecePosition + (BoardSize + 1) * direction;
+                if (Board[rightTakePosition] is not null)
+                    moves.Add(rightTakePosition);
             }
 
             return moves;
