@@ -249,21 +249,21 @@ namespace ChessGameUI
 
         private void HighlightPossibleTiles(List<MoveOption>? lastHighlightedTiles)
         {
+            if (lastHighlightedTiles is not null)
+            {
+                foreach (var (movePosition, _) in lastHighlightedTiles)
+                {
+                    var lastHighlightedTile = _tilePanels[movePosition];
+                    lastHighlightedTile.BackColor = GetTileBackColor(movePosition);
+                    lastHighlightedTile.Cursor = Cursors.Default;
+                }
+            }
+
             foreach (var (movePosition, moveType) in _currentlyHighlightedMoves)
             {
                 var highlightedPanel = _tilePanels[movePosition];
                 highlightedPanel.BackColor = GetHighlightColor(moveType);
                 highlightedPanel.Cursor = Cursors.Hand;
-            }
-
-            if (lastHighlightedTiles is null)
-                return;
-
-            foreach (var (movePosition, _) in lastHighlightedTiles)
-            {
-                var lastHighlightedTile = _tilePanels[movePosition];
-                lastHighlightedTile.BackColor = GetTileBackColor(movePosition);
-                lastHighlightedTile.Cursor = Cursors.Default;
             }
         }
 
