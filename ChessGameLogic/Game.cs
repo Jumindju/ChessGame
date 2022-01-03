@@ -114,7 +114,11 @@ namespace ChessGameLogic
 
         private List<MoveOption> GetQueenMoves(int piecePosition, Piece piece)
         {
-            throw new NotImplementedException();
+            var (row, column) = GetRowColumnOfPosition(piecePosition);
+            var queenMoves = GetDiagonalMovement(piecePosition, row, column);
+            queenMoves.AddRange(GetMovesOnStraightLines(piecePosition,row,column));
+
+            return queenMoves;
         }
 
         private List<MoveOption> GetRockMoves(int piecePosition, Piece piece)
