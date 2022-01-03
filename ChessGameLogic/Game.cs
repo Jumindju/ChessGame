@@ -70,7 +70,8 @@ namespace ChessGameLogic
 
         public void Promote(int position, PieceType promotion)
         {
-            var row = position / 8;
+            var (row, _) = GetRowColumnOfPosition(position);
+
             if ((CurrentPlayer == Player.White && row != BoardSize - 1) || (CurrentPlayer == Player.Black) && row != 0)
                 throw new InvalidOperationException("Piece is not on promotion field");
             if (Board[position]?.PieceType != PieceType.Pawn)
@@ -89,17 +90,22 @@ namespace ChessGameLogic
             if (piece.Player != CurrentPlayer)
                 throw new InvalidOperationException("Not users turn");
 
+            var (row, column) = GetRowColumnOfPosition(piecePosition);
+
             return piece.PieceType switch
             {
-                PieceType.Pawn => GetPawnMoves(piecePosition, piece),
+                PieceType.Pawn => GetPawnMoves(piecePosition, row, column, piece),
                 PieceType.King => GetKingMoves(piecePosition, piece),
                 PieceType.Queen => GetQueenMoves(piecePosition, piece),
                 PieceType.Rock => GetRockMoves(piecePosition, piece),
-                PieceType.Bishop => GetBishopMoves(piecePosition, piece),
-                PieceType.Knight => GetKnightMoves(piecePosition, piece),
+                PieceType.Bishop => GetBishopMoves(piecePosition, row, column, piece),
+                PieceType.Knight => GetKnightMoves(piecePosition, row, column, piece),
                 _ => throw new InvalidOperationException("Invalid piece type")
             };
         }
+
+        public static RowColumn GetRowColumnOfPosition(int piecePosition) =>
+            new RowColumn(piecePosition / BoardSize, piecePosition % BoardSize);
 
         private List<MoveOption> GetKingMoves(int piecePosition, Piece piece)
         {
@@ -116,17 +122,15 @@ namespace ChessGameLogic
             throw new NotImplementedException();
         }
 
-        private List<MoveOption> GetBishopMoves(int piecePosition, Piece piece)
-        {
-            throw new NotImplementedException();
-        }
+        private List<MoveOption> GetBishopMoves(int piecePosition, int row, int column, Piece piece)
+            => GetDiagonalMovement(piecePosition, row, column, piece.Player);
 
-        private List<MoveOption> GetKnightMoves(int piecePosition, Piece piece)
+        private List<MoveOption> GetKnightMoves(int piecePosition, int row, int column, Piece piece)
         {
             var currentPlayer = piece.Player;
             var possibleMoves = new List<MoveOption>();
 
-            var possibleDirections = GetPossibleKnightDirections(piecePosition);
+            var possibleDirections = GetPossibleKnightDirections(piecePosition, row, column);
 
             foreach (var possibleDirection in possibleDirections)
             {
@@ -149,12 +153,9 @@ namespace ChessGameLogic
             return possibleMoves;
         }
 
-        private static IEnumerable<int> GetPossibleKnightDirections(int piecePosition)
+        private static IEnumerable<int> GetPossibleKnightDirections(int piecePosition, int row, int column)
         {
             var knightMoves = new List<int>();
-
-            var row = piecePosition / BoardSize;
-            var column = piecePosition % BoardSize;
 
             // all knight moves which go 1 upwards
             if (row < BoardSize - 1)
@@ -203,14 +204,11 @@ namespace ChessGameLogic
             return knightMoves;
         }
 
-        private List<MoveOption> GetPawnMoves(int piecePosition, Piece piece)
+        private List<MoveOption> GetPawnMoves(int piecePosition, int row, int column, Piece piece)
         {
             var moves = new List<MoveOption>();
             var (_, player) = piece;
             var direction = (int) player;
-
-            var column = piecePosition % BoardSize;
-            var row = piecePosition / BoardSize;
 
             // check if piece is in front
             var moveInFront = piecePosition + (BoardSize * direction);
@@ -261,6 +259,88 @@ namespace ChessGameLogic
             }
 
             return moves;
+        }
+
+        private List<MoveOption> GetDiagonalMovement(int piecePosition, int row, int column, Player currentPlayer)
+        {
+            var diagonalMoves = new List<MoveOption>();
+
+            // bottom left diagonal
+            if (row > 0 && column > 0)
+            {
+                for (var diagonalPos = piecePosition - 9; diagonalPos >= 0; diagonalPos -= 9)
+                {
+                    var (move, lineFinished) = GetMoveOnDiagonalLine(diagonalPos);
+                    if (move is not null)
+                        diagonalMoves.Add(move);
+
+                    if (lineFinished)
+                        break;
+                }
+            }
+
+            // top left diagonal
+            if (row < BoardSize && column > 0)
+            {
+                for (var diagonalPos = piecePosition + 7; diagonalPos < TileCount; diagonalPos += 7)
+                {
+                    var (move, lineFinished) = GetMoveOnDiagonalLine(diagonalPos);
+                    if (move is not null)
+                        diagonalMoves.Add(move);
+
+                    if (lineFinished)
+                        break;
+                }
+            }
+
+            // bottom right diagonal
+            if (row > 0 && column < BoardSize)
+            {
+                for (var diagonalPos = piecePosition - 7; diagonalPos > 0; diagonalPos -= 7)
+                {
+                    var (move, lineFinished) = GetMoveOnDiagonalLine(diagonalPos);
+                    if (move is not null)
+                        diagonalMoves.Add(move);
+
+                    if (lineFinished)
+                        break;
+                }
+            }
+
+            // top right diagonal
+            if (row < BoardSize && column < BoardSize)
+            {
+                for (var diagonalPos = piecePosition + 9; diagonalPos < TileCount; diagonalPos += 9)
+                {
+                    var (move, lineFinished) = GetMoveOnDiagonalLine(diagonalPos);
+                    if (move is not null)
+                        diagonalMoves.Add(move);
+
+                    if (lineFinished)
+                        break;
+                }
+            }
+
+            return diagonalMoves;
+        }
+
+        private (MoveOption? move, bool lineFinished) GetMoveOnDiagonalLine(int position)
+        {
+            MoveOption? move = null;
+
+            var pieceOnField = Board[position];
+            if (pieceOnField is null)
+                move = new MoveOption(position, MoveType.Regular);
+            else if (pieceOnField.Player != CurrentPlayer)
+                move = new MoveOption(position, MoveType.Capture);
+
+            var moveColumn = position % 8;
+
+            var lineFinished = pieceOnField is not null ||
+                               moveColumn == 0 ||
+                               moveColumn == BoardSize - 1;
+
+            return (move, lineFinished);
         }
 
         private void SwitchPlayer()
