@@ -140,7 +140,7 @@ namespace ChessGameLogic
             // 2 moves on start position
             var column = piecePosition % BoardSize;
             var row = piecePosition / BoardSize;
-            
+
             var isOnStartPosition = (player == Player.White && row == 1) ||
                                     (player == Player.Black && row == BoardSize - 2);
             if (isOnStartPosition)
@@ -153,16 +153,18 @@ namespace ChessGameLogic
             // take left
             if (column > 0)
             {
-                var leftTakePosition = piecePosition + (BoardSize - 1) * direction;
-                if (Board[leftTakePosition] is not null)
+                var leftTakePosition = piecePosition + (BoardSize - direction) * direction;
+                var leftTakePiece = Board[leftTakePosition];
+                if (leftTakePiece is not null && leftTakePiece.Player != CurrentPlayer)
                     moves.Add(new MoveOption(leftTakePosition, MoveType.Capture));
             }
 
             // take right
             if (column < 7)
             {
-                var rightTakePosition = piecePosition + (BoardSize + 1) * direction;
-                if (Board[rightTakePosition] is not null)
+                var rightTakePosition = piecePosition + (BoardSize + direction) * direction;
+                var rightTakePiece = Board[rightTakePosition];
+                if (rightTakePiece is not null && rightTakePiece.Player != CurrentPlayer)
                     moves.Add(new MoveOption(rightTakePosition, MoveType.Capture));
             }
 
