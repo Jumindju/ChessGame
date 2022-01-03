@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using ChessGameLogic.Pieces;
@@ -209,22 +209,24 @@ namespace ChessGameLogic
             var (_, player) = piece;
             var direction = (int) player;
 
-            // check if piece is in front
-            var moveInFront = piecePosition + (BoardSize * direction);
-            if (Board[moveInFront] is null)
-                moves.Add(new MoveOption(moveInFront, MoveType.Regular));
-
-            // 2 moves on start position
             var column = piecePosition % BoardSize;
             var row = piecePosition / BoardSize;
 
-            var isOnStartPosition = (player == Player.White && row == 1) ||
-                                    (player == Player.Black && row == BoardSize - 2);
-            if (isOnStartPosition)
+            // check if piece is in front
+            var moveInFront = piecePosition + (BoardSize * direction);
+            if (Board[moveInFront] is null)
             {
-                var doubleMove = piecePosition + (BoardSize * 2 * direction);
-                if (Board[doubleMove] is null)
-                    moves.Add(new MoveOption(doubleMove, MoveType.Regular));
+                moves.Add(new MoveOption(moveInFront, MoveType.Regular));
+
+                // 2 moves on start position
+                var isOnStartPosition = (player == Player.White && row == 1) ||
+                                        (player == Player.Black && row == BoardSize - 2);
+                if (isOnStartPosition)
+                {
+                    var doubleMove = piecePosition + (BoardSize * 2 * direction);
+                    if (Board[doubleMove] is null)
+                        moves.Add(new MoveOption(doubleMove, MoveType.Regular));
+                }
             }
 
             // take left
