@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using ChessGameLogic.Pieces;
@@ -123,7 +123,84 @@ namespace ChessGameLogic
 
         private List<MoveOption> GetKnightMoves(int piecePosition, Piece piece)
         {
-            throw new NotImplementedException();
+            var currentPlayer = piece.Player;
+            var possibleMoves = new List<MoveOption>();
+
+            var possibleDirections = GetPossibleKnightDirections(piecePosition);
+
+            foreach (var possibleDirection in possibleDirections)
+            {
+                var movePosition = piecePosition + possibleDirection;
+
+                if (movePosition < 0 || movePosition >= TileCount)
+                    continue;
+
+                var pieceOnPosition = Board[movePosition];
+                if (pieceOnPosition is null)
+                {
+                    possibleMoves.Add(new MoveOption(movePosition, MoveType.Regular));
+                }
+                else if (pieceOnPosition.Player != currentPlayer)
+                {
+                    possibleMoves.Add(new MoveOption(movePosition, MoveType.Capture));
+                }
+            }
+
+            return possibleMoves;
+        }
+
+        private static IEnumerable<int> GetPossibleKnightDirections(int piecePosition)
+        {
+            var knightMoves = new List<int>();
+
+            var row = piecePosition / BoardSize;
+            var column = piecePosition % BoardSize;
+
+            // all knight moves which go 1 upwards
+            if (row < BoardSize - 1)
+            {
+                // 1 up 2 left
+                if (column > 1)
+                    knightMoves.Add(6);
+                // 1 up 2 right
+                if (column < BoardSize - 2)
+                    knightMoves.Add(10);
+            }
+
+            // all knight moves which go 2 upwards
+            if (row < BoardSize - 2)
+            {
+                // 2 up 1 left
+                if (column > 0)
+                    knightMoves.Add(15);
+                // 2 up 1 right
+                if (column < BoardSize - 1)
+                    knightMoves.Add(17);
+            }
+
+            // all knight moves which go 1 downwards
+            if (row > 0)
+            {
+                // 1 down 2 left
+                if (column > 1)
+                    knightMoves.Add(-10);
+                // 1 down 2 right
+                if (column < BoardSize - 2)
+                    knightMoves.Add(-6);
+            }
+
+            // all knight moves which go 2 downwards
+            if (row > 1)
+            {
+                // 2 down 1 left
+                if (column > 0)
+                    knightMoves.Add(-17);
+                // 2 down 1 right 
+                if (column < BoardSize - 1)
+                    knightMoves.Add(-15);
+            }
+
+            return knightMoves;
         }
 
         private List<MoveOption> GetPawnMoves(int piecePosition, Piece piece)
