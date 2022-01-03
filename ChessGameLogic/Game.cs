@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using ChessGameLogic.Pieces;
 
 namespace ChessGameLogic
@@ -8,6 +9,8 @@ namespace ChessGameLogic
     {
         public const int BoardSize = 8;
         public const int TileCount = BoardSize * BoardSize;
+
+        private Move LastDoublePawnMoveRow = null;
 
         public Piece?[] Board { get; }
         public Player CurrentPlayer { get; private set; }
@@ -20,30 +23,49 @@ namespace ChessGameLogic
             SetupBoard();
         }
 
-        public Move MovePiece(int startPosition, int targetPosition)
+        public MoveType MovePiece(int startPosition, MoveOption targetMove)
         {
             var targetPiece = Board[startPosition];
             if (targetPiece is null)
                 throw new ArgumentException("Piece to move does not exist", nameof(startPosition));
 
+            var (targetPosition, moveType) = targetMove;
+
             var possibleMoves = GetMoves(startPosition);
-            if (!possibleMoves.Contains(targetPosition))
+            if (possibleMoves.All(move => move.MovePosition != targetPosition))
                 throw new InvalidOperationException("Move is not possible");
 
             Board[startPosition] = null;
-            var isCapture = Board[targetPosition] is not null;
             Board[targetPosition] = targetPiece;
 
             var targetRow = targetPosition / BoardSize;
+            var targetColumn = targetPosition % 8;
+
+            // check for promotion
             var isOnLastRow = (targetPiece.Player == Player.White && targetRow == BoardSize - 1) ||
                               (targetPiece.Player == Player.Black && targetRow == 0);
             if (targetPiece.PieceType == PieceType.Pawn && isOnLastRow)
-                return Move.Promotion;
+                return MoveType.Promotion;
+
+            // save double move of pawn for en passent
+            if (targetPiece.PieceType == PieceType.Pawn && Math.Abs(targetPosition - startPosition) == 16)
+                LastDoublePawnMoveRow = new Move(targetRow, targetColumn);
+            else
+                LastDoublePawnMoveRow = null;
+
+            // handle en passent capture
+            // until here the pawn moved to the new position but the captured pawn is still on the board
+            if (moveType == MoveType.EnPassent)
+            {
+                var moveDirection = CurrentPlayer == Player.White
+                    ? -1
+                    : 1;
+                var enPassentCapturePosition = targetPosition + (BoardSize * moveDirection);
+                Board[enPassentCapturePosition] = null;
+            }
 
             SwitchPlayer();
-            return isCapture
-                ? Move.Capture
-                : Move.Regular;
+            return moveType;
         }
 
         public void Promote(int position, PieceType promotion)
@@ -58,7 +80,7 @@ namespace ChessGameLogic
             SwitchPlayer();
         }
 
-        public List<int> GetMoves(int piecePosition)
+        public List<MoveOption> GetMoves(int piecePosition)
         {
             var piece = Board[piecePosition];
             if (piece is null)
@@ -79,69 +101,82 @@ namespace ChessGameLogic
             };
         }
 
-        private List<int> GetKingMoves(int piecePosition, Piece piece)
+        private List<MoveOption> GetKingMoves(int piecePosition, Piece piece)
         {
             throw new NotImplementedException();
         }
 
-        private List<int> GetQueenMoves(int piecePosition, Piece piece)
+        private List<MoveOption> GetQueenMoves(int piecePosition, Piece piece)
         {
             throw new NotImplementedException();
         }
 
-        private List<int> GetRockMoves(int piecePosition, Piece piece)
+        private List<MoveOption> GetRockMoves(int piecePosition, Piece piece)
         {
             throw new NotImplementedException();
         }
 
-        private List<int> GetBishopMoves(int piecePosition, Piece piece)
+        private List<MoveOption> GetBishopMoves(int piecePosition, Piece piece)
         {
             throw new NotImplementedException();
         }
 
-        private List<int> GetKnightMoves(int piecePosition, Piece piece)
+        private List<MoveOption> GetKnightMoves(int piecePosition, Piece piece)
         {
             throw new NotImplementedException();
         }
 
-        private List<int> GetPawnMoves(int piecePosition, Piece piece)
+        private List<MoveOption> GetPawnMoves(int piecePosition, Piece piece)
         {
-            var moves = new List<int>();
+            var moves = new List<MoveOption>();
             var (_, player) = piece;
             var direction = (int) player;
 
             // check if piece is in front
             var moveInFront = piecePosition + (BoardSize * direction);
             if (Board[moveInFront] is null)
-                moves.Add(moveInFront);
+                moves.Add(new MoveOption(moveInFront, MoveType.Regular));
 
             // 2 moves on start position
-            var column = piecePosition / BoardSize;
-            var isOnStartPosition = (player == Player.White && column == 1) ||
-                                    (player == Player.Black && column == BoardSize - 2);
+            var column = piecePosition % BoardSize;
+            var row = piecePosition / BoardSize;
+            
+            var isOnStartPosition = (player == Player.White && row == 1) ||
+                                    (player == Player.Black && row == BoardSize - 2);
             if (isOnStartPosition)
             {
                 var doubleMove = piecePosition + (BoardSize * 2 * direction);
                 if (Board[doubleMove] is null)
-                    moves.Add(doubleMove);
+                    moves.Add(new MoveOption(doubleMove, MoveType.Regular));
             }
 
-            var row = piecePosition % BoardSize;
-
             // take left
-            if (row > 0)
+            if (column > 0)
             {
                 var leftTakePosition = piecePosition + (BoardSize - 1) * direction;
                 if (Board[leftTakePosition] is not null)
-                    moves.Add(leftTakePosition);
+                    moves.Add(new MoveOption(leftTakePosition, MoveType.Capture));
             }
 
             // take right
-            if (row < 7)
+            if (column < 7)
             {
                 var rightTakePosition = piecePosition + (BoardSize + 1) * direction;
                 if (Board[rightTakePosition] is not null)
-                    moves.Add(rightTakePosition);
+                    moves.Add(new MoveOption(rightTakePosition, MoveType.Capture));
+            }
+
+            // check for en passent
+            if (LastDoublePawnMoveRow != null)
+            {
+                var (lastDoublePawnMoveRow, lastDoublePawnMoveColumn) = LastDoublePawnMoveRow;
+                if (lastDoublePawnMoveRow == row &&
+                    Math.Abs(lastDoublePawnMoveColumn - column) == 1)
+                {
+                    var enPassentMove = BoardSize * lastDoublePawnMoveRow + lastDoublePawnMoveColumn +
+                                        (BoardSize * direction);
+                    moves.Add(new MoveOption(enPassentMove, MoveType.EnPassent));
+                }
             }
 
             return moves;

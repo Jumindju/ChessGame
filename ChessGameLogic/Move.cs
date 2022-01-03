@@ -1,9 +1,4 @@
 ﻿namespace ChessGameLogic
 {
-    public enum Move
-    {
-        Regular,
-        Capture,
-        Promotion
-    }
+    public record Move(int Row, int Column);
 }

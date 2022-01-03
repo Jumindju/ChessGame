@@ -30,7 +30,7 @@ namespace ChessGameUI
         private readonly Game _game;
 
         private int? _currentSelectedPiecePosition;
-        private List<int>? _currentlyHighlightedMoves;
+        private List<MoveOption>? _currentlyHighlightedMoves;
 
         public int TileSize { get; private set; }
         public int PaddingLeft { get; private set; }
@@ -124,9 +124,10 @@ namespace ChessGameUI
                     paddingTop + (TileSize * (Game.BoardSize - 1 - row)));
 
                 // color the backgrounds
-                if (_currentlyHighlightedMoves is not null && _currentlyHighlightedMoves.Contains(cell))
+                var highlightedMove = _currentlyHighlightedMoves?.FirstOrDefault(hm => hm.MovePosition == cell);
+                if (highlightedMove is not null)
                 {
-                    tilePanel.BackColor = GetHighlightColor(cell);
+                    tilePanel.BackColor = GetHighlightColor(highlightedMove.MoveType);
                     tilePanel.Cursor = Cursors.Hand;
                 }
                 else
@@ -155,11 +156,12 @@ namespace ChessGameUI
                 return;
 
             var targetedPosition = (int) ((ChessTile) sender).Tag;
+            var targetMove = _currentlyHighlightedMoves?.FirstOrDefault(hm => hm.MovePosition == targetedPosition);
 
             // move to the desired position
-            if (_currentlyHighlightedMoves.Contains(targetedPosition))
+            if (targetMove is not null)
             {
-                MovePiece(targetedPosition);
+                MovePiece(targetMove);
             }
             else
             {
@@ -172,15 +174,16 @@ namespace ChessGameUI
         private void OnPieceClick(object? sender, EventArgs e)
         {
             var piecePosition = (int) ((PictureBox) sender).Tag;
+            var targetMove = _currentlyHighlightedMoves?.FirstOrDefault(hm => hm.MovePosition == piecePosition);
+
             var piece = _game.Board[piecePosition];
             if (piece is null)
                 return;
 
             if (piece.Player != _game.CurrentPlayer)
             {
-                if (_currentlyHighlightedMoves is not null &&
-                    _currentlyHighlightedMoves.Contains(piecePosition))
-                    MovePiece(piecePosition);
+                if (targetMove is not null)
+                    MovePiece(targetMove);
 
                 return;
             }
@@ -189,7 +192,7 @@ namespace ChessGameUI
 
             var pieceMoves = _game.GetMoves(piecePosition);
             var lastHighlighted = _currentlyHighlightedMoves != null
-                ? new List<int>(_currentlyHighlightedMoves)
+                ? new List<MoveOption>(_currentlyHighlightedMoves)
                 : null;
 
             _currentlyHighlightedMoves = pieceMoves;
@@ -197,13 +200,14 @@ namespace ChessGameUI
             HighlightPossibleTiles(lastHighlighted);
         }
 
-        private void MovePiece(int targetedPosition)
+        private void MovePiece(MoveOption targetMove)
         {
             UndoHighlighting();
 
             var selectedPiecePosition = _currentSelectedPiecePosition.Value;
+            var targetedPosition = targetMove.MovePosition;
 
-            var move = _game.MovePiece(selectedPiecePosition, targetedPosition);
+            var move = _game.MovePiece(selectedPiecePosition, targetMove);
             var oldTile = _tilePanels[selectedPiecePosition];
             oldTile.Controls.Clear();
 
@@ -213,14 +217,14 @@ namespace ChessGameUI
             targetedTile.Controls.Add(pieceImageBox);
 
             _pieceImageBoxes[targetedPosition] = pieceImageBox;
-            pieceImageBox.Tag = targetedPosition;
+            pieceImageBox.Tag = targetMove.MovePosition;
 
             _pieceImageBoxes[selectedPiecePosition] = null;
 
             _currentlyHighlightedMoves = null;
             _currentSelectedPiecePosition = null;
 
-            if (move == ChessGameLogic.Move.Promotion)
+            if (move == MoveType.Promotion)
             {
                 var promotionDialog = new PromotionDialog(_game.CurrentPlayer)
                 {
@@ -228,45 +232,55 @@ namespace ChessGameUI
                 };
                 promotionDialog.ShowDialog(this);
                 var promotionPiece = promotionDialog.SelectedPiece;
-                _game.Promote(targetedPosition,promotionPiece);
+                _game.Promote(targetedPosition, promotionPiece);
                 pieceImageBox.Image = GetPieceImage(_game.Board[targetedPosition]);
+            }
+            else if (move == MoveType.EnPassent)
+            {
+                // switch direction because player where already switched in MovePiece method
+                var direction = _game.CurrentPlayer == Player.White
+                    ? 1
+                    : -1;
+                var enPassentCapturePosition = targetedPosition + (Game.BoardSize * direction);
+                _tilePanels[enPassentCapturePosition].Controls.Clear();
+                _pieceImageBoxes[enPassentCapturePosition] = null;
             }
         }
 
-        private void HighlightPossibleTiles(List<int>? lastHighlightedTiles)
+        private void HighlightPossibleTiles(List<MoveOption>? lastHighlightedTiles)
         {
-            foreach (var possibleMove in _currentlyHighlightedMoves)
+            foreach (var (movePosition, moveType) in _currentlyHighlightedMoves)
             {
-                var highlightedPanel = _tilePanels[possibleMove];
-                highlightedPanel.BackColor = GetHighlightColor(possibleMove);
+                var highlightedPanel = _tilePanels[movePosition];
+                highlightedPanel.BackColor = GetHighlightColor(moveType);
                 highlightedPanel.Cursor = Cursors.Hand;
             }
 
             if (lastHighlightedTiles is null)
                 return;
 
-            foreach (var lastHighlighted in lastHighlightedTiles)
+            foreach (var (movePosition, _) in lastHighlightedTiles)
             {
-                var lastHighlightedTile = _tilePanels[lastHighlighted];
-                lastHighlightedTile.BackColor = GetTileBackColor(lastHighlighted);
+                var lastHighlightedTile = _tilePanels[movePosition];
+                lastHighlightedTile.BackColor = GetTileBackColor(movePosition);
                 lastHighlightedTile.Cursor = Cursors.Default;
             }
         }
 
         private void UndoHighlighting()
         {
-            foreach (var currentlyHighlightedMove in _currentlyHighlightedMoves)
+            foreach (var (movePosition, _) in _currentlyHighlightedMoves)
             {
-                var highlightedTile = _tilePanels[currentlyHighlightedMove];
-                highlightedTile.BackColor = GetTileBackColor(currentlyHighlightedMove);
+                var highlightedTile = _tilePanels[movePosition];
+                highlightedTile.BackColor = GetTileBackColor(movePosition);
                 highlightedTile.Cursor = Cursors.Default;
             }
         }
 
-        private Color GetHighlightColor(int position) =>
-            _game.Board[position] is null
-                ? _highlightColor
-                : _takeHighlightColor;
+        private static Color GetHighlightColor(MoveType moveType) =>
+            moveType == MoveType.Capture || moveType == MoveType.EnPassent
+                ? _takeHighlightColor
+                : _highlightColor;
 
         private static Color GetTileBackColor(int position)
         {
