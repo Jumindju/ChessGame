@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using ChessGameLogic.Pieces;
@@ -119,11 +119,12 @@ namespace ChessGameLogic
 
         private List<MoveOption> GetRockMoves(int piecePosition, Piece piece)
         {
-            throw new NotImplementedException();
+            var (row, column) = GetRowColumnOfPosition(piecePosition);
+            return GetMovesOnStraightLines(piecePosition, row, column);
         }
 
         private List<MoveOption> GetBishopMoves(int piecePosition, int row, int column, Piece piece)
-            => GetDiagonalMovement(piecePosition, row, column, piece.Player);
+            => GetDiagonalMovement(piecePosition, row, column);
 
         private List<MoveOption> GetKnightMoves(int piecePosition, int row, int column, Piece piece)
         {
@@ -261,7 +262,7 @@ namespace ChessGameLogic
             return moves;
         }
 
-        private List<MoveOption> GetDiagonalMovement(int piecePosition, int row, int column, Player currentPlayer)
+        private List<MoveOption> GetDiagonalMovement(int piecePosition, int row, int column)
         {
             var diagonalMoves = new List<MoveOption>();
 
@@ -341,6 +342,76 @@ namespace ChessGameLogic
                                moveColumn == BoardSize - 1;
 
             return (move, lineFinished);
+        }
+
+        private List<MoveOption> GetMovesOnStraightLines(int piecePosition, int row, int column)
+        {
+            var moves = new List<MoveOption>();
+
+            // right vertical
+            if (column < BoardSize - 1)
+            {
+                for (var fieldIndex = piecePosition + 1; fieldIndex < (row + 1) * BoardSize; fieldIndex++)
+                {
+                    var (move, shouldBreak) = GetMoveOnLine(fieldIndex);
+                    if (move is not null)
+                        moves.Add(move);
+                    if (shouldBreak)
+                        break;
+                }
+            }
+
+            // left vertical
+            if (column > 0)
+            {
+                for (var fieldIndex = piecePosition - 1; fieldIndex >= 0; fieldIndex--)
+                {
+                    var (move, shouldBreak) = GetMoveOnLine(fieldIndex);
+                    if (move is not null)
+                        moves.Add(move);
+                    if (shouldBreak)
+                        break;
+                }
+            }
+
+            // up horizontal
+            if (row < BoardSize - 1)
+            {
+                for (var fieldIndex = piecePosition + BoardSize; fieldIndex < TileCount; fieldIndex += 8)
+                {
+                    var (move, shouldBreak) = GetMoveOnLine(fieldIndex);
+                    if (move is not null)
+                        moves.Add(move);
+                    if (shouldBreak)
+                        break;
+                }
+            }
+
+            // down horizontal
+            if (row > 0)
+            {
+                for (var fieldIndex = piecePosition - 8; fieldIndex >= 0; fieldIndex -= 8)
+                {
+                    var (move, shouldBreak) = GetMoveOnLine(fieldIndex);
+                    if (move is not null)
+                        moves.Add(move);
+                    if (shouldBreak)
+                        break;
+                }
+            }
+
+            return moves;
+        }
+
+        private (MoveOption move, bool shouldBreak) GetMoveOnLine(int piecePosition)
+        {
+            var pieceOnField = Board[piecePosition];
+            if (pieceOnField is null)
+                return (new MoveOption(piecePosition, MoveType.Regular), false);
+
+            return pieceOnField.Player != CurrentPlayer
+                ? (new MoveOption(piecePosition, MoveType.Capture), true)
+                : (null, true);
         }
 
         private void SwitchPlayer()
